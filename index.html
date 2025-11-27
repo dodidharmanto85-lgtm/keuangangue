@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KeuanganKu - HTML Version</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        /* Custom scrollbar for webkit */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="bg-gray-50 text-slate-800 antialiased overflow-hidden h-screen flex flex-col">
+
+    <!-- ================= AUTH SCREEN ================= -->
+    <div id="auth-screen" class="fixed inset-0 z-50 bg-slate-900 flex items-center justify-center p-4 hidden">
+        <div class="bg-white w-full max-w-md p-8 rounded-3xl shadow-2xl fade-in">
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+                    <i data-lucide="wallet" class="w-8 h-8"></i>
+                </div>
+                <h1 class="text-2xl font-bold text-slate-800">KeuanganKu</h1>
+                <p class="text-slate-500 text-sm mt-1">Masuk untuk mengelola finansial Anda</p>
+            </div>
+
+            <form id="login-form" class="space-y-5">
+                <div id="auth-error" class="hidden bg-rose-50 text-rose-600 p-3 rounded-xl text-sm flex items-center gap-2 border border-rose-100">
+                    <i data-lucide="alert-triangle" class="w-4 h-4"></i> <span id="auth-error-text"></span>
+                </div>
+                
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2 ml-1">Email</label>
+                    <div class="relative">
+                        <input type="email" id="email" required class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all" placeholder="contoh@email.com">
+                        <i data-lucide="user" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5"></i>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2 ml-1">Password</label>
+                    <div class="relative">
+                        <input type="password" id="password" required class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all" placeholder="••••••••">
+                        <i data-lucide="lock" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5"></i>
+                    </div>
+                </div>
+
+                <button type="submit" id="btn-login" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-indigo-200 flex justify-center items-center gap-2">
+                    Masuk Aplikasi
+                </button>
+            </form>
+            <p class="text-center text-xs text-slate-400 mt-6">Belum punya akun? Hubungi Admin.</p>
+        </div>
+    </div>
+
+    <!-- ================= MAIN APP LAYOUT ================= -->
+    <div id="app-layout" class="flex h-full hidden">
+        
+        <!-- SIDEBAR -->
+        <aside id="sidebar" class="w-72 bg-slate-900 text-white flex-col shadow-2xl z-40 hidden lg:flex h-full">
+            <div class="p-8 pb-4">
+                <div class="flex items-center gap-3 text-emerald-400 mb-1">
+                    <div class="bg-emerald-400/10 p-2 rounded-xl"><i data-lucide="database" class="w-6 h-6"></i></div>
+                    <span class="font-bold tracking-wider text-xs uppercase">Supabase</span>
+                </div>
+                <h1 class="text-2xl font-bold tracking-tight text-white mt-2">KeuanganKu</h1>
+            </div>
+
+            <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto" id="nav-menu">
+                <!-- Menu items injected via JS -->
+            </nav>
+
+            <div class="p-6 border-t border-slate-800">
+                <div class="bg-slate-800/50 rounded-2xl p-4">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center text-white font-bold text-sm" id="user-initial">U</div>
+                        <div class="overflow-hidden">
+                            <p class="text-xs text-white font-bold truncate w-32" id="user-email">user@email.com</p>
+                            <p class="text-[10px] text-slate-400" id="user-role">User</p>
+                        </div>
+                    </div>
+                    <button onclick="logout()" class="w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-slate-700 hover:bg-red-600 text-xs text-white transition-colors">
+                        <i data-lucide="log-out" class="w-4 h-4"></i> Keluar
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <div class="flex-1 flex flex-col h-full overflow-hidden relative bg-gray-50">
+            <!-- Mobile Header -->
+            <header class="lg:hidden bg-white p-4 flex items-center justify-between border-b border-slate-200 z-30">
+                <button onclick="toggleMobileMenu()" class="p-2 text-slate-600 hover:bg-slate-100 rounded-lg"><i data-lucide="menu" class="w-6 h-6"></i></button>
+                <h1 class="font-bold text-lg text-slate-800">KeuanganKu</h1>
+                <div class="w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center text-white text-xs font-bold" id="mobile-user-initial">U</div>
+            </header>
+
+            <!-- Scrollable Content Area -->
+            <main id="main-content" class="flex-1 overflow-y-auto p-4 sm:p-8 relative">
+                <!-- Dynamic Content Injected Here -->
+            </main>
+        </div>
+    </div>
+
+    <!-- ================= MOBILE MENU OVERLAY ================= -->
+    <div id="mobile-menu-overlay" onclick="toggleMobileMenu()" class="fixed inset-0 bg-slate-900/50 z-40 hidden backdrop-blur-sm transition-opacity"></div>
+    <div id="mobile-sidebar" class="fixed inset-y-0 left-0 z-50 w-72 bg-slate-900 text-white transform -translate-x-full transition-transform duration-300 ease-in-out flex flex-col shadow-2xl lg:hidden">
+        <!-- Cloned content from sidebar via JS -->
+    </div>
+
+    <!-- ================= MODAL: TRANSACTION / ADD DATA ================= -->
+    <div id="transaction-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-[100] hidden sm:p-4">
+        <div class="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-md overflow-hidden fade-in">
+            <div class="p-6 pb-2 flex justify-between items-start bg-slate-50/50">
+                <div>
+                    <span id="modal-type-badge" class="px-3 py-1 rounded-full text-xs font-bold tracking-wider uppercase bg-slate-200 text-slate-600">TYPE</span>
+                    <h3 id="modal-title" class="text-2xl font-bold text-slate-800 mt-2">Tambah Baru</h3>
+                </div>
+                <button onclick="closeModal()" class="p-2 hover:bg-slate-100 rounded-full"><i data-lucide="x" class="w-5 h-5 text-slate-500"></i></button>
+            </div>
+            
+            <form id="transaction-form" class="p-6 space-y-5">
+                <input type="hidden" id="edit-id">
+                
+                <div class="relative">
+                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">Rp</span>
+                    <input type="number" id="input-amount" required min="0" class="w-full pl-12 pr-4 py-4 text-2xl font-bold text-slate-800 bg-slate-50 border-2 border-transparent rounded-2xl focus:bg-white focus:border-indigo-500 outline-none transition-all" placeholder="0">
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1">Tanggal</label>
+                        <div class="relative">
+                            <input type="date" id="input-date" required class="w-full bg-white border border-slate-200 text-slate-700 p-3 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1">Kategori</label>
+                        <select id="input-category" required class="w-full bg-white border border-slate-200 text-slate-700 p-3 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none">
+                            <!-- Options injected via JS -->
+                        </select>
+                    </div>
+
+                    <div id="field-frequency">
+                        <label id="label-frequency" class="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1">Frekuensi</label>
+                        <div id="container-frequency-select">
+                            <select id="input-frequency" class="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <option value="monthly">Bulanan (Tetap)</option>
+                                <option value="variable">Tagihan Variabel</option>
+                                <option value="weekly">Mingguan</option>
+                                <option value="quarterly">Per 3 Bulan</option>
+                                <option value="oneTime">Sekali Saja</option>
+                            </select>
+                        </div>
+                        <div id="container-frequency-number" class="hidden">
+                            <input type="number" id="input-tenure" min="1" class="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Contoh: 12">
+                            <p class="text-xs text-emerald-600 mt-1 ml-1 flex gap-1"><i data-lucide="check-circle-2" class="w-3 h-3 mt-0.5"></i> Cicilan otomatis masuk ke Pengeluaran.</p>
+                        </div>
+                        <p id="hint-variable" class="hidden text-xs text-blue-600 mt-1 ml-1">*Pilih "Tagihan Variabel" karena nominal berubah tiap bulan.</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1">Catatan</label>
+                        <input type="text" id="input-desc" class="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Keterangan...">
+                    </div>
+                </div>
+
+                <button type="submit" id="btn-save" class="w-full py-4 rounded-2xl bg-slate-900 text-white font-bold shadow-lg hover:shadow-xl transform active:scale-[0.98] transition-all">Simpan</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= MODAL: ADMIN ADD USER ================= -->
+    <div id="admin-modal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center z-[110] hidden p-4">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 fade-in">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                    <i data-lucide="user-plus" class="text-indigo-600 w-6 h-6"></i> Tambah Akun Baru
+                </h3>
+                <button onclick="closeAdminModal()"><i data-lucide="x" class="text-slate-400 hover:text-slate-600 w-6 h-6"></i></button>
+            </div>
+
+            <div id="admin-msg" class="hidden p-3 rounded-xl text-sm mb-4"></div>
+
+            <form id="admin-form" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Email Baru</label>
+                    <input type="email" id="admin-new-email" required class="w-full p-3 border border-slate-200 rounded-xl" placeholder="user@keuangan.com">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Password</label>
+                    <input type="password" id="admin-new-pass" required class="w-full p-3 border border-slate-200 rounded-xl" placeholder="Minimal 6 karakter">
+                </div>
+                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition-colors">
+                    Buat Akun
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // --- CONFIGURATION ---
+        const SUPABASE_URL = "https://zbyxmqtqjlutgrkwowfu.supabase.co";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpieXhtcXRxamx1dGdya3dvd2Z1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQyMzQ4MDMsImV4cCI6MjA3OTgxMDgwM30.uuv-AC4Ss-L2yFQlN-2t2q5pPXOq4dXKS9aPnGsHoJo";
+        const ADMIN_EMAIL = "admin@keuangan.com";
+
+        // --- CONSTANTS ---
+        const CATEGORIES = {
+            income: ["Gaji Bulanan", "TPP", "TPG", "Uang Masuk Tidak Terduga", "Lainnya"],
+            expense: ["Tagihan SPinjam (Bulan Ini)", "Tagihan SPaylater (Bulan Ini)", "Uang Dapur", "Uang Rokok", "Uang Bensin", "Uang Ngopi", "Kursus Badminton Anak", "Main Badminton (Mingguan)", "Pengeluaran Tidak Terduga", "Lainnya"],
+            wish: ["Elektronik", "Kendaraan", "Liburan", "Lainnya"],
+            debt_goal: ["KPR Rumah", "Pinjaman Bank BJB", "Sisa Pokok SPinjam", "Sisa Pokok SPaylater", "Hutang Teman/Keluarga", "Lainnya"]
+        };
+
+        const FREQUENCIES = {
+            monthly: { label: "Bulanan (Tetap)", multiplier: 1 },
+            variable: { label: "Tagihan Variabel", multiplier: 1 },
+            weekly: { label: "Mingguan", multiplier: 4 },
+            quarterly: { label: "Per 3 Bulan", multiplier: 1/3 },
+            oneTime: { label: "Sekali Saja", multiplier: 0 }
+        };
+
+        // --- STATE ---
+        let supabase;
+        let session = null;
+        let transactions = [];
+        let currentTab = 'dashboard';
+        let currentModalType = 'income'; // income, expense, wish, debt_goal
+
+        // --- INITIALIZATION ---
+        function initApp() {
+            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            
+            // Auth Listener
+            supabase.auth.onAuthStateChange((event, _session) => {
+                session = _session;
+                renderAuthCheck();
+            });
+
+            // Mobile Menu Clone
+            const sidebarContent = document.querySelector('#sidebar > div').cloneNode(true);
+            const navContent = document.querySelector('#sidebar > nav').cloneNode(true);
+            navContent.id = "mobile-nav";
+            document.getElementById('mobile-sidebar').innerHTML = ''; 
+            document.getElementById('mobile-sidebar').appendChild(sidebarContent);
+            document.getElementById('mobile-sidebar').appendChild(navContent);
+            
+            // Attach Forms
+            document.getElementById('login-form').addEventListener('submit', handleLogin);
+            document.getElementById('transaction-form').addEventListener('submit', handleSaveTransaction);
+            document.getElementById('admin-form').addEventListener('submit', handleAdminRegister);
+
+            lucide.createIcons();
+        }
+
+        function renderAuthCheck() {
+            if (session) {
+                document.getElementById('auth-screen').classList.add('hidden');
+                document.getElementById('app-layout').classList.remove('hidden');
+                
+                // Update User Info
+                const email = session.user.email;
+                document.getElementById('user-email').innerText = email;
+                document.getElementById('user-initial').innerText = email.charAt(0).toUpperCase();
+                document.getElementById('mobile-user-initial').innerText = email.charAt(0).toUpperCase();
+                document.getElementById('user-role').innerText = email === ADMIN_EMAIL ? 'Administrator' : 'User';
+
+                renderSidebarMenu();
+                fetchData();
+            } else {
+                document.getElementById('auth-screen').classList.remove('hidden');
+                document.getElementById('app-layout').classList.add('hidden');
+            }
+        }
+
+        // --- AUTH FUNCTIONS ---
+        async function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const btn = document.getElementById('btn-login');
+            const errDiv = document.getElementById('auth-error');
+            
+            btn.innerHTML = 'Memuat...';
+            btn.disabled = true;
+            errDiv.classList.add('hidden');
+
+            const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+            if (error) {
+                document.getElementById('auth-error-text').innerText = error.message;
+                errDiv.classList.remove('hidden');
+                btn.innerHTML = 'Masuk Aplikasi';
+                btn.disabled = false;
+            }
+            // Success handled by onAuthStateChange
+        }
+
+        async function logout() {
+            await supabase.auth.signOut();
+        }
+
+        // --- DATA FUNCTIONS ---
+        async function fetchData() {
+            if (!session) return;
+            renderLoading();
+            
+            const { data, error } = await supabase
+                .from('transactions')
+                .select('*')
+                .eq('user_id', session.user.id)
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                alert("Gagal mengambil data: " + error.message);
+            } else {
+                transactions = data || [];
+                renderContent();
+            }
+        }
+
+        async function handleSaveTransaction(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btn-save');
+            btn.innerHTML = 'Menyimpan...';
+            btn.disabled = true;
+
+            const editId = document.getElementById('edit-id').value;
+            const frequencyVal = currentModalType === 'debt_goal' 
+                ? document.getElementById('input-tenure').value 
+                : document.getElementById('input-frequency').value;
+
+            const payload = {
+                amount: parseFloat(document.getElementById('input-amount').value),
+                category: document.getElementById('input-category').value,
+                description: document.getElementById('input-desc').value,
+                frequency: frequencyVal,
+                date: document.getElementById('input-date').value,
+                type: currentModalType
+            };
+
+            let error;
+            if (editId) {
+                const { error: err } = await supabase.from('transactions').update(payload).eq('id', editId);
+                error = err;
+            } else {
+                payload.user_id = session.user.id;
+                const { error: err } = await supabase.from('transactions').insert([payload]);
+                error = err;
+            }
+
+            if (error) alert("Error: " + error.message);
+            else {
+                closeModal();
+                fetchData();
+            }
+            btn.innerHTML = 'Simpan';
+            btn.disabled = false;
+        }
+
+        async function handleDelete(id) {
+            if(!confirm("Hapus data ini?")) return;
+            const { error } = await supabase.from('transactions').delete().eq('id', id);
+            if(error) alert(error.message);
+            else fetchData();
+        }
+
+        // --- RENDER LOGIC ---
+        function renderSidebarMenu() {
+            const menus = [
+                { id: 'dashboard', label: 'Ringkasan', icon: 'layout-dashboard' },
+                { id: 'income', label: 'Pemasukan', icon: 'trending-up' },
+                { id: 'repayment', label: 'Target & Hutang', icon: 'calculator' },
+                { id: 'expense', label: 'Pengeluaran', icon: 'trending-down' },
+                { id: 'wish', label: 'Keinginan', icon: 'target' },
+            ];
+
+            const isAdmin = session.user.email === ADMIN_EMAIL;
+            let html = '<p class="px-4 text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Menu Utama</p>';
+
+            menus.forEach(m => {
+                const activeClass = currentTab === m.id ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/50' : 'text-slate-400 hover:bg-slate-800 hover:text-white';
+                const iconClass = currentTab === m.id ? 'text-indigo-200' : 'text-slate-500';
+                html += `
+                    <button onclick="switchTab('${m.id}')" class="w-full flex items-center gap-4 px-4 py-4 rounded-xl transition-all duration-200 group ${activeClass}">
+                        <i data-lucide="${m.icon}" class="w-5 h-5 ${iconClass}"></i>
+                        <span class="font-medium text-sm">${m.label}</span>
+                    </button>
+                `;
+            });
+
+            if (isAdmin) {
+                html += `
+                    <div class="mt-8">
+                        <p class="px-4 text-xs font-bold text-indigo-400 uppercase tracking-widest mb-2">Admin Area</p>
+                        <button onclick="openAdminModal()" class="w-full flex items-center gap-4 px-4 py-4 rounded-xl text-indigo-300 hover:bg-indigo-900/50 transition-all">
+                            <i data-lucide="users" class="w-5 h-5"></i>
+                            <span class="font-medium text-sm">Tambah Akun</span>
+                        </button>
+                    </div>
+                `;
+            }
+
+            document.getElementById('nav-menu').innerHTML = html;
+            // Update cloned mobile menu too
+            const mobileNav = document.getElementById('mobile-nav');
+            if(mobileNav) {
+                mobileNav.innerHTML = html;
+                // Add click handler to close menu
+                mobileNav.querySelectorAll('button').forEach(b => {
+                    b.addEventListener('click', () => toggleMobileMenu());
+                });
+            }
+            lucide.createIcons();
+        }
+
+        function switchTab(tabId) {
+            currentTab = tabId;
+            renderSidebarMenu();
+            renderContent();
+        }
+
+        function renderLoading() {
+            document.getElementById('main-content').innerHTML = `
+                <div class="flex items-center justify-center h-full">
+                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+                </div>
+            `;
+        }
+
+        function renderContent() {
+            const container = document.getElementById('main-content');
+            
+            // Calculate Stats
+            let totalIncome = 0, totalExpense = 0, totalWish = 0;
+            let virtualExpenses = [];
+
+            transactions.forEach(t => {
+                if (t.type === 'income') totalIncome += (t.amount * (FREQUENCIES[t.frequency]?.multiplier || 0));
+                else if (t.type === 'expense') totalExpense += (t.amount * (FREQUENCIES[t.frequency]?.multiplier || 0));
+                else if (t.type === 'wish') totalWish += t.amount;
+                else if (t.type === 'debt_goal') {
+                    const isVariable = t.category.toLowerCase().includes('spinjam') || t.category.toLowerCase().includes('spaylater');
+                    if (!isVariable) {
+                        const tenure = parseFloat(t.frequency) || 1;
+                        const monthly = t.amount / tenure;
+                        totalExpense += monthly;
+                        virtualExpenses.push({ ...t, amount: monthly, tenure });
+                    }
+                }
+            });
+
+            const balance = totalIncome - totalExpense;
+
+            // Render Views based on Tab
+            if (currentTab === 'dashboard') {
+                container.innerHTML = getDashboardHTML(totalIncome, totalExpense, totalWish, balance);
+            } else if (currentTab === 'repayment') {
+                const debtList = transactions.filter(t => t.type === 'debt_goal');
+                container.innerHTML = getRepaymentHTML(balance, debtList);
+            } else {
+                // List Views (Income, Expense, Wish)
+                const listData = transactions.filter(t => t.type === currentTab);
+                const showVirtual = currentTab === 'expense' ? virtualExpenses : [];
+                container.innerHTML = getListHTML(currentTab, listData, showVirtual);
+            }
+            lucide.createIcons();
+        }
+
+        // --- HTML GENERATORS ---
+
+        function formatRupiah(num) {
+            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(num);
+        }
+
+        function formatDate(dateStr) {
+            if(!dateStr) return '-';
+            const date = new Date(dateStr);
+            return new Intl.DateTimeFormat('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(date);
+        }
+
+        function getDashboardHTML(income, expense, wish, balance) {
+            const totalNeeds = expense;
+            const idealIncome = totalNeeds + (totalNeeds * 0.2); // +20% saving
+            const isDeficit = balance < 0;
+            const isHealthy = income >= idealIncome;
+            const gap = idealIncome - income;
+
+            let targetLabel, targetAmt, targetDesc;
+            if(isDeficit) { targetLabel="Target Stabilisasi Darurat"; targetAmt=totalNeeds; targetDesc="Minimal agar tidak defisit."; }
+            else if(!isHealthy) { targetLabel="Target Kesehatan Finansial"; targetAmt=idealIncome; targetDesc="Angka aman untuk menabung 20%."; }
+            else { targetLabel="Target Pertumbuhan"; targetAmt=income*1.1; targetDesc="Tingkatkan 10% untuk investasi."; }
+
+            return `
+                <div class="space-y-8 fade-in">
+                    <header class="flex justify-between items-center">
+                        <div><h2 class="text-2xl font-bold text-slate-800">Ringkasan Eksekutif</h2><p class="text-slate-500 text-sm">Overview kondisi keuangan.</p></div>
+                        <button onclick="openModal('income')" class="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-xl font-medium text-sm shadow-lg flex items-center gap-2"><i data-lucide="plus" class="w-4 h-4"></i> Pemasukan</button>
+                    </header>
+
+                    <div class="bg-gradient-to-r from-slate-900 to-indigo-900 rounded-3xl p-1 shadow-xl">
+                        <div class="bg-slate-900/50 rounded-[22px] p-6 backdrop-blur-sm border border-white/10 flex flex-col md:flex-row justify-between gap-6 items-center text-white">
+                            <div>
+                                <div class="flex items-center gap-2 mb-2"><i data-lucide="activity" class="text-emerald-400 w-4 h-4"></i><span class="text-indigo-200 text-xs font-bold uppercase">${targetLabel}</span></div>
+                                <div class="flex items-baseline gap-1"><span class="text-4xl font-bold">${formatRupiah(targetAmt)}</span><span class="text-slate-400 text-sm">/ bulan</span></div>
+                                <p class="text-slate-400 text-sm mt-2">${targetDesc}</p>
+                            </div>
+                            <div class="text-right"><p class="text-xs text-slate-400 uppercase">Saldo Bersih</p><p class="text-2xl font-bold ${balance < 0 ? 'text-rose-400' : 'text-emerald-400'}">${formatRupiah(balance)}</p></div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100"><div class="flex justify-between mb-4"><div class="p-3 bg-emerald-50 rounded-2xl text-emerald-600"><i data-lucide="trending-up" class="w-6 h-6"></i></div></div><p class="text-3xl font-bold text-slate-800">${formatRupiah(income)}</p><p class="text-xs text-slate-400 mt-2">Pemasukan Total</p></div>
+                        <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100"><div class="flex justify-between mb-4"><div class="p-3 bg-rose-50 rounded-2xl text-rose-600"><i data-lucide="trending-down" class="w-6 h-6"></i></div></div><p class="text-3xl font-bold text-slate-800">${formatRupiah(expense)}</p><p class="text-xs text-slate-400 mt-2">Pengeluaran Total</p></div>
+                        <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100"><div class="flex justify-between mb-4"><div class="p-3 bg-blue-50 rounded-2xl text-blue-600"><i data-lucide="target" class="w-6 h-6"></i></div></div><p class="text-3xl font-bold text-slate-800">${formatRupiah(wish)}</p><p class="text-xs text-slate-400 mt-2">Target Keinginan</p></div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function getRepaymentHTML(balance, items) {
+            let itemsHtml = items.map(item => {
+                const isVariable = item.category.toLowerCase().includes('spinjam') || item.category.toLowerCase().includes('spaylater');
+                const tenure = parseFloat(item.frequency) || 0;
+                const installment = tenure > 0 ? item.amount / tenure : 0;
+                
+                return `
+                <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 relative overflow-hidden group">
+                    <div class="absolute right-[-20px] top-[-20px] bg-amber-50 w-32 h-32 rounded-full blur-2xl opacity-50"></div>
+                    <div class="relative z-10">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="flex items-center gap-3">
+                                <div class="p-2 bg-amber-100 text-amber-600 rounded-xl"><i data-lucide="${item.category.includes('Rumah') ? 'home' : 'target'}" class="w-5 h-5"></i></div>
+                                <div><h3 class="font-bold text-slate-800">${item.category}</h3><p class="text-xs text-slate-500">Pokok Hutang</p></div>
+                            </div>
+                            <div class="flex gap-1">
+                                <button onclick="editTransaction('${item.id}')" class="p-2 text-slate-300 hover:text-indigo-600 rounded-lg"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
+                                <button onclick="handleDelete('${item.id}')" class="p-2 text-slate-300 hover:text-rose-600 rounded-lg"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                            </div>
+                        </div>
+                        <p class="text-2xl font-bold text-slate-800 mb-2">${formatRupiah(item.amount)}</p>
+                        <div class="flex items-center gap-4 text-sm text-slate-500 mb-6">
+                            <div class="flex items-center gap-1"><i data-lucide="clock" class="w-4 h-4"></i><span>Sisa: <strong>${tenure} Bln</strong></span></div>
+                            ${!isVariable ? `<div class="flex items-center gap-1"><i data-lucide="credit-card" class="w-4 h-4"></i><span>Cicilan: <strong>${formatRupiah(installment)}/bln</strong></span></div>` : ''}
+                        </div>
+                        <div class="p-3 rounded-xl border flex items-start gap-2 ${isVariable ? 'bg-orange-50 border-orange-100' : 'bg-emerald-50 border-emerald-100'}">
+                            <i data-lucide="link" class="w-4 h-4 mt-1 flex-shrink-0 ${isVariable ? 'text-orange-600' : 'text-emerald-600'}"></i>
+                            <p class="text-xs leading-relaxed ${isVariable ? 'text-orange-700' : 'text-emerald-700'}">
+                                ${isVariable ? "Manual: Input tagihan di menu Pengeluaran." : `Otomatis: Cicilan ${formatRupiah(installment)} masuk pengeluaran.`}
+                            </p>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+
+            return `
+                <div class="space-y-8 fade-in">
+                    <header class="flex justify-between items-center bg-amber-50 p-6 rounded-3xl border border-amber-100">
+                        <div><h2 class="text-2xl font-bold text-amber-900">Target Pelunasan</h2><p class="text-amber-700/80 text-sm">Monitor hutang & cicilan.</p></div>
+                        <button onclick="openModal('debt_goal')" class="bg-amber-500 hover:bg-amber-600 text-white px-5 py-2.5 rounded-xl font-medium text-sm shadow-lg flex items-center gap-2"><i data-lucide="plus" class="w-4 h-4"></i> Tambah Data</button>
+                    </header>
+                    <div class="grid gap-4 md:grid-cols-2">${itemsHtml || '<p class="col-span-2 text-center text-slate-400 py-10">Belum ada target hutang.</p>'}</div>
+                </div>
+            `;
+        }
+
+        function getListHTML(type, items, virtualItems = []) {
+            let colorClass = type === 'income' ? 'text-emerald-700' : type === 'expense' ? 'text-rose-700' : 'text-blue-700';
+            let btnClass = type === 'income' ? 'bg-emerald-500' : type === 'expense' ? 'bg-rose-500' : 'bg-blue-500';
+            let title = type === 'income' ? 'Pemasukan' : type === 'expense' ? 'Pengeluaran' : 'Keinginan';
+
+            let html = `
+                <div class="space-y-6 fade-in">
+                    <header class="flex justify-between items-center bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+                        <div><h2 class="text-2xl font-bold ${colorClass}">${title}</h2><p class="text-slate-400 text-sm">Kelola daftar ${title.toLowerCase()}.</p></div>
+                        <button onclick="openModal('${type}')" class="w-12 h-12 flex items-center justify-center rounded-2xl text-white shadow-lg active:scale-95 ${btnClass}"><i data-lucide="plus" class="w-6 h-6"></i></button>
+                    </header>
+                    <div class="grid gap-4">
+            `;
+
+            // Virtual Items
+            virtualItems.forEach(v => {
+                html += `
+                    <div class="bg-amber-50 p-5 rounded-3xl shadow-sm border border-amber-100 flex justify-between items-center opacity-90">
+                        <div class="flex items-center gap-5">
+                            <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-xl shadow-inner bg-amber-100 text-amber-600"><i data-lucide="credit-card" class="w-6 h-6"></i></div>
+                            <div>
+                                <h3 class="font-bold text-slate-800 text-lg flex items-center gap-2">${v.category}<span class="text-[10px] bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full uppercase">Otomatis</span></h3>
+                                <span class="text-sm text-slate-500">Dari Target Pelunasan (Sisa: ${v.tenure} bln)</span>
+                            </div>
+                        </div>
+                        <div class="text-right"><p class="text-lg font-bold text-rose-600">${formatRupiah(v.amount)}</p></div>
+                    </div>
+                `;
+            });
+
+            // Normal Items
+            if (items.length === 0 && virtualItems.length === 0) {
+                html += `<div class="text-center py-10 text-slate-400">Belum ada data.</div>`;
+            } else {
+                items.forEach(item => {
+                    const iconColor = type === 'income' ? 'bg-emerald-50 text-emerald-600' : type === 'expense' ? 'bg-rose-50 text-rose-600' : 'bg-blue-50 text-blue-600';
+                    const amtColor = type === 'income' ? 'text-emerald-600' : type === 'expense' ? 'text-rose-600' : 'text-blue-600';
+                    const iconName = type === 'income' ? 'trending-up' : type === 'expense' ? 'trending-down' : 'target';
+                    
+                    html += `
+                        <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 hover:shadow-md transition-all group flex justify-between items-center">
+                            <div class="flex items-center gap-5">
+                                <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-xl shadow-inner ${iconColor}"><i data-lucide="${iconName}" class="w-6 h-6"></i></div>
+                                <div>
+                                    <h3 class="font-bold text-slate-800 text-lg">${item.category}</h3>
+                                    <div class="flex flex-col mt-1">
+                                        ${type !== 'wish' ? `<span class="text-[10px] font-bold px-2 py-0.5 bg-slate-100 text-slate-500 rounded-md w-fit mb-1">${FREQUENCIES[item.frequency]?.label || '-'}</span>` : ''}
+                                        <span class="text-[10px] text-slate-400 flex items-center gap-1"><i data-lucide="calendar-days" class="w-3 h-3"></i> ${formatDate(item.date)}</span>
+                                        ${item.description ? `<span class="text-sm text-slate-500 truncate max-w-[150px] mt-1">${item.description}</span>` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-lg font-bold ${amtColor}">${formatRupiah(item.amount)}</p>
+                                <div class="flex justify-end gap-2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button onclick="editTransaction('${item.id}')" class="p-2 text-slate-400 hover:text-indigo-600"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
+                                    <button onclick="handleDelete('${item.id}')" class="p-2 text-slate-400 hover:text-rose-600"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            html += `</div></div>`;
+            return html;
+        }
+
+        // --- MODAL LOGIC ---
+        function openModal(type) {
+            currentModalType = type;
+            document.getElementById('edit-id').value = '';
+            document.getElementById('input-amount').value = '';
+            document.getElementById('input-desc').value = '';
+            document.getElementById('input-date').value = new Date().toISOString().split('T')[0];
+            
+            // Setup Categories
+            const catSelect = document.getElementById('input-category');
+            catSelect.innerHTML = '';
+            CATEGORIES[type].forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat;
+                opt.textContent = cat;
+                catSelect.appendChild(opt);
+            });
+
+            // Show/Hide Frequency Inputs
+            const freqField = document.getElementById('field-frequency');
+            const freqSelect = document.getElementById('container-frequency-select');
+            const freqNumber = document.getElementById('container-frequency-number');
+            const hintVar = document.getElementById('hint-variable');
+
+            if (type === 'wish') {
+                freqField.classList.add('hidden');
+            } else if (type === 'debt_goal') {
+                freqField.classList.remove('hidden');
+                document.getElementById('label-frequency').innerText = "Sisa Tenor (Bulan)";
+                freqSelect.classList.add('hidden');
+                freqNumber.classList.remove('hidden');
+                document.getElementById('input-tenure').required = true;
+                hintVar.classList.add('hidden');
+            } else {
+                freqField.classList.remove('hidden');
+                document.getElementById('label-frequency').innerText = "Frekuensi";
+                freqSelect.classList.remove('hidden');
+                freqNumber.classList.add('hidden');
+                document.getElementById('input-tenure').required = false;
+                hintVar.classList.add('hidden'); // Logic for variable check handled via change event if needed
+            }
+
+            document.getElementById('modal-title').innerText = 'Tambah Baru';
+            document.getElementById('modal-type-badge').innerText = type === 'debt_goal' ? 'TARGET HUTANG' : type.toUpperCase();
+            
+            document.getElementById('transaction-modal').classList.remove('hidden');
+        }
+
+        function editTransaction(id) {
+            const item = transactions.find(t => t.id === id);
+            if(!item) return;
+            
+            openModal(item.type);
+            document.getElementById('edit-id').value = item.id;
+            document.getElementById('input-amount').value = item.amount;
+            document.getElementById('input-category').value = item.category;
+            document.getElementById('input-desc').value = item.description || '';
+            document.getElementById('input-date').value = item.date || new Date().toISOString().split('T')[0];
+
+            if(item.type === 'debt_goal') {
+                document.getElementById('input-tenure').value = item.frequency;
+            } else {
+                document.getElementById('input-frequency').value = item.frequency;
+            }
+            
+            document.getElementById('modal-title').innerText = 'Edit Data';
+        }
+
+        function closeModal() {
+            document.getElementById('transaction-modal').classList.add('hidden');
+        }
+
+        // --- ADMIN MODAL ---
+        function openAdminModal() {
+            const adminMsg = document.getElementById('admin-msg');
+            adminMsg.classList.add('hidden');
+            adminMsg.className = 'hidden p-3 rounded-xl text-sm mb-4'; 
+            document.getElementById('admin-new-email').value = '';
+            document.getElementById('admin-new-pass').value = '';
+            document.getElementById('admin-modal').classList.remove('hidden');
+        }
+
+        function closeAdminModal() {
+            document.getElementById('admin-modal').classList.add('hidden');
+        }
+
+        async function handleAdminRegister(e) {
+            e.preventDefault();
+            const email = document.getElementById('admin-new-email').value;
+            const password = document.getElementById('admin-new-pass').value;
+            const msgDiv = document.getElementById('admin-msg');
+            
+            // Use secondary client to avoid logging out admin
+            const tempClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false } });
+            
+            const { error } = await tempClient.auth.signUp({ email, password });
+
+            msgDiv.classList.remove('hidden');
+            if (error) {
+                msgDiv.innerText = error.message;
+                msgDiv.className = 'p-3 rounded-xl text-sm mb-4 bg-rose-50 text-rose-600 block';
+            } else {
+                msgDiv.innerText = `Akun ${email} berhasil dibuat!`;
+                msgDiv.className = 'p-3 rounded-xl text-sm mb-4 bg-emerald-50 text-emerald-600 block';
+                document.getElementById('admin-new-email').value = '';
+                document.getElementById('admin-new-pass').value = '';
+            }
+        }
+
+        // --- UI UTILS ---
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-sidebar');
+            const overlay = document.getElementById('mobile-menu-overlay');
+            const isHidden = menu.classList.contains('-translate-x-full');
+            
+            if (isHidden) {
+                menu.classList.remove('-translate-x-full');
+                overlay.classList.remove('hidden');
+            } else {
+                menu.classList.add('-translate-x-full');
+                overlay.classList.add('hidden');
+            }
+        }
+
+        // Start App
+        window.onload = initApp;
+
+    </script>
+</body>
+</html>
